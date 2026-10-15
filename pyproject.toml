@@ -5,11 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dbschemax"
 version = "0.1.0"
-description = "Relational Schema & Functional Dependency Analyzer"
+description = "Relational Schema & Functional Dependency Analyzer (MFCS applied to DBMS design)"
+readme = "README.md"
 requires-python = ">=3.10"
+dependencies = []  # the core and the CLI use only the standard library
+
+[project.optional-dependencies]
+ui = ["streamlit>=1.35"]  # tested with Streamlit 1.65
+test = ["pytest"]
+
+[project.scripts]
+dbschemax = "dbschemax.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+testpaths = ["tests"]

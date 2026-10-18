@@ -1,133 +1,246 @@
+<div align="center">
+
 # DBSchemaX
 
-**Relational Schema & Functional Dependency Analyzer** — a Python project applying discrete mathematics and database theory to relational schema design. DBSchemaX analyses functional dependencies, computes keys and covers, checks normal forms, synthesizes a 3NF decomposition, and provides a command-line interface and Streamlit dashboard.
+**A relational schema and functional dependency analyzer that turns database-design rules into mathematically justified keys, normalization checks, and decomposed schemas.**
 
-## What DBSchemaX does
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](#tech-stack)
+[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](#tech-stack)
+[![SQLite](https://img.shields.io/badge/Integration-SQLite-003B57?logo=sqlite&logoColor=white)](#tech-stack)
+[![Testing](https://img.shields.io/badge/Tests-pytest-0A9EDC?logo=pytest&logoColor=white)](#testing)
+[![Focus](https://img.shields.io/badge/Focus-MFCS%20%2B%20DBMS-6C5CE7)](#mfcs-concepts)
 
-Database schemas can store the same facts repeatedly, which can lead to update, insertion, and deletion anomalies. DBSchemaX helps analyse a relation's structure and functional dependencies, identify relevant keys and normalization issues, and generate a proposed normalized schema.
+</div>
 
-The project combines a reusable mathematical core with CLI, SQLite integration, reports, and a Streamlit user interface.
+---
 
-## Features
+## Overview
 
-| Feature | Description |
+**DBSchemaX** is a Python project that applies discrete mathematics to relational database design. It helps users analyse relation schemas and functional dependencies, discover candidate keys, simplify dependency sets, inspect normal-form violations, and generate a 3NF decomposition.
+
+The project combines a reusable mathematical core with a command-line interface, SQLite schema integration, Markdown/JSON reporting, and a Streamlit dashboard. Its **Normalization Lab** provides a reproducible 250-record college-enrollment example so users can compare a denormalized relation with the tables produced by the synthesis workflow.
+
+> **Core idea:** provide a schema and its functional dependencies, let DBSchemaX perform the analysis, and inspect both the mathematical evidence and the proposed database design.
+
+## Table of Contents
+
+- [The Problem](#the-problem)
+- [The Solution](#the-solution)
+- [Key Features](#key-features)
+- [Interactive Modules](#interactive-modules)
+- [Normalization Lab](#normalization-lab)
+- [MFCS Concepts](#mfcs-concepts)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Analysis Workflow](#analysis-workflow)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Using DBSchemaX](#using-dbschemax)
+- [Testing](#testing)
+- [Important Assumptions and Limitations](#important-assumptions-and-limitations)
+- [Future Improvements](#future-improvements)
+
+---
+
+## The Problem
+
+Relational database design becomes difficult when a table contains many attributes and the relationships between them are not obvious. A poorly designed relation can store the same fact repeatedly and introduce update, insertion, or deletion anomalies.
+
+DBMS students and developers need to answer questions such as:
+
+- Which attributes uniquely identify a row?
+- Is a proposed key minimal, or does it contain unnecessary attributes?
+- Which functional dependencies are redundant or can be simplified?
+- Does the relation satisfy 2NF, 3NF, or BCNF under the supplied dependencies?
+- If a relation needs to be decomposed, what smaller schemas should be created?
+- Can the decomposed tables preserve the dependencies and reconstruct the original relation?
+
+Doing these calculations manually can be repetitive and difficult to verify—especially as the number of attributes and dependencies grows.
+
+## The Solution
+
+DBSchemaX brings these tasks into one workflow:
+
+1. **Define the relation** by specifying its attributes and functional dependencies, or inspect a supported SQLite schema.
+2. **Analyse the rules** using attribute closure, candidate-key discovery, and minimal-cover algorithms.
+3. **Evaluate the design** against supported normal-form rules and review the explanations for the results.
+4. **Generate a decomposition** using the existing 3NF synthesis implementation.
+5. **Inspect and export results** through the command-line interface, reports, or Streamlit dashboard.
+
+The tool is designed to show more than a status label: its purpose is to connect the result to the functional dependencies and mathematical reasoning behind it.
+
+---
+
+## Key Features
+
+### Relation and Functional Dependency Analysis
+- Represent relation schemas and functional dependencies with immutable data models.
+- Parse functional dependencies using `->` or `→` notation.
+- Support an empty left-hand side where it is valid in the mathematical model, such as `∅ → A`.
+- Validate attributes and dependency definitions against the supplied relation.
+
+### Mathematical Algorithms
+- **Attribute closure** — calculate the attributes implied by a starting attribute set.
+- **Candidate-key discovery** — find minimal superkeys using the supplied functional dependencies.
+- **Minimal cover** — simplify a dependency set using standard equivalence-preserving transformations.
+- **Normalization analysis** — evaluate supported 2NF, 3NF, and BCNF conditions and report relevant violations.
+- **3NF synthesis** — generate relation schemas from a minimal cover.
+
+### Practical Tooling
+- **Command-line interface** for running supported project operations.
+- **SQLite integration** to inspect supported table/schema metadata without modifying the source database.
+- **Markdown and JSON reports** for sharing analysis results.
+- **Streamlit dashboard** with dedicated views for schema input, dependencies, keys, minimal cover, normalization, synthesis, and reports.
+- **Normalization Lab** with a generated dataset, before/after comparisons, normalized table previews, and downloadable outputs.
+- **Automated tests** covering mathematical logic, inputs, CLI, reporting-related integration, and UI support.
+
+---
+
+## Interactive Modules
+
+| Module | Purpose | What it helps answer |
+|---|---|---|
+| **Overview** | Introduces the workflow and example results. | What does DBSchemaX analyse? |
+| **Schema Input** | Defines a relation and its dependencies. | What are the attributes and rules? |
+| **Dependency Explorer** | Examines functional dependencies and closure reasoning. | What follows from a given attribute set? |
+| **Candidate Keys** | Presents candidate-key results. | Which minimal sets identify the whole relation? |
+| **Minimal Cover** | Displays a simplified equivalent dependency set. | Which dependency components are unnecessary? |
+| **Normalization** | Checks normal-form conditions and violations. | Which rules does the current design fail? |
+| **3NF Synthesis** | Generates schemas using the synthesis algorithm. | How can the relation be organized into smaller tables? |
+| **Reports** | Presents/export analysis output. | How can results be saved or shared? |
+| **Normalization Lab** | Runs the guided 250-record example. | What changed in the data and why? |
+
+---
+
+## Normalization Lab
+
+The Normalization Lab is intended to make normalization visible and easier to explain. Instead of analysing only a tiny example, it loads a deterministic **synthetic college-enrollment dataset containing 250 records and 11 columns**.
+
+The demo includes student, department, course, instructor, semester, and grade information. It supplies a known set of functional dependencies, checks them against the generated records, runs the existing key and synthesis logic, and projects the source tuples into the resulting relation schemas.
+
+### Example before-and-after comparison
+
+| Measurement | Original relation | Normalized relations |
+|---|---:|---:|
+| Number of relations/tables | 1 | 6 |
+| Total rows across all tables | 250 | 383 |
+| Attribute-value cells | 2,750 | 1,434 |
+| Reconstruction check | — | Exact tuple-set match |
+
+The sample's attribute-value-cell count is approximately **47.9% lower** after decomposition. The total number of rows increases because details such as students, courses, and departments are stored separately from enrolments. The cell count is a simple indicator of repeated data—not a precise measurement of disk usage or file size.
+
+### What the demo demonstrates
+
+- **Dependency validation:** checks that the declared dependencies hold on the generated sample records.
+- **Key analysis:** determines the candidate key from the supplied schema and rules.
+- **Decomposition:** uses the existing 3NF synthesis implementation to derive the output relation schemas.
+- **Projection and deduplication:** creates each output relation's rows from the original records and removes duplicate tuples.
+- **Reconstruction verification:** checks whether joining the decomposed relations reconstructs the original tuple set.
+- **Export:** allows the normalized data to be inspected and downloaded through the Lab interface.
+
+The demo data is generated for repeatability and teaching; it is **not a real university dataset**. The example's functional dependencies are deliberately designed to hold for its generated records.
+
+---
+
+## MFCS Concepts
+
+DBSchemaX connects Mathematics for Computer Science (MFCS) concepts to database-design tasks.
+
+| Concept | Role in DBSchemaX |
 |---|---|
-| Relation and FD models | Represents relation schemas and functional dependencies using attribute sets. |
-| FD parser | Parses functional-dependency input, including multi-attribute sides and an empty left-hand side. |
-| Attribute closure | Computes the attributes implied by a given attribute set and FD set. |
-| Candidate keys | Finds minimal superkeys using closure and subset search. |
-| Minimal cover | Simplifies a set of functional dependencies while preserving its logical implications. |
-| Normal-form analysis | Analyses 1NF when atomicity information is supplied, and checks 2NF, 3NF, and BCNF using the schema and FDs. |
-| 3NF synthesis | Produces a set of relation schemas from a minimal cover using the project's synthesis algorithm. |
-| SQLite integration | Reads and analyses supported SQLite schema metadata. |
-| Reports | Produces analysis reports, including Markdown and JSON output. |
-| CLI | Runs supported analyses from the command line. |
-| Streamlit dashboard | Provides pages for overview, schema input, dependency exploration, candidate keys, minimal cover, normalization, 3NF synthesis, reports, and the Normalization Lab. |
-| Normalization Lab | Demonstrates the transformation of a deterministic, synthetic 250-record enrollment dataset into normalized tables. |
+| **Sets and subsets** | Represent attributes, attribute sets, and candidate keys. |
+| **Logic and implication** | Functional dependencies express which attributes determine other attributes. |
+| **Fixed-point computation** | Attribute closure repeatedly applies dependencies until no new attributes are added. |
+| **Minimality** | Candidate keys must be superkeys with no unnecessary proper subset; minimal covers remove redundant dependency components. |
+| **Algorithmic search** | Candidate-key discovery examines possible attribute sets; the search can grow exponentially with the number of attributes. |
+| **Equivalence-preserving transformations** | Minimal-cover and synthesis steps use dependency rules to simplify and organize the schema. |
+| **Correctness checks** | Dependency validation and tuple reconstruction test important properties of the example decomposition. |
 
-## Normalization Lab: a before-and-after demonstration
+### Key terminology
 
-The Normalization Lab is designed to show a concrete result instead of only displaying labels such as 2NF or 3NF.
+- **Functional dependency** `X → Y`: within the intended relation, rows agreeing on attribute set `X` must also agree on attribute set `Y`.
+- **Attribute closure** `X⁺`: all attributes implied by `X` under a given set of functional dependencies.
+- **Superkey**: an attribute set whose closure contains every attribute in the relation.
+- **Candidate key**: a minimal superkey.
+- **Minimal cover**: an equivalent dependency set simplified according to the project's minimal-cover algorithm.
+- **Normalization**: organizing relation schemas to reduce problematic redundancy and avoid data anomalies while respecting the applicable dependency rules.
 
-- Loads **250 synthetic enrollment records** with 11 columns.
-- Provides the demo schema, functional dependencies, and atomicity information for guided analysis.
-- Uses the existing DBSchemaX analysis and 3NF synthesis implementation.
-- Projects and deduplicates the source records into the synthesized relations.
-- Displays the resulting tables and provides CSV downloads, plus a ZIP export where supported by the UI.
-- Checks the example's declared functional dependencies and verifies whether the original tuples can be reconstructed from the decomposed tables.
-- Compares the original and normalized table counts, rows, and attribute-value-cell counts.
+---
 
-The example has six declared dependencies and produces six normalized relations. In the included demo, the expected comparison is 250 original rows and 2,750 attribute-value cells versus 383 total rows across the normalized tables and 1,434 attribute-value cells. The cell count is a simple indicator of repeated values, not a measurement of disk space. Normalization does **not** necessarily reduce the total row count.
+## Tech Stack
 
-The data is synthetic, generated for a reproducible demonstration; it is not taken from a real university dataset. A dependency that holds in a sample is verified for that sample only—it does not establish that the same rule must hold for all future real-world data.
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Language** | Python 3.10+ | Mathematical logic, models, CLI and integration code |
+| **UI** | Streamlit | Interactive analysis dashboard and Normalization Lab |
+| **Database integration** | SQLite | Read supported schema and table metadata |
+| **Testing** | pytest | Unit and integration tests |
+| **Packaging** | setuptools with `pyproject.toml` | Editable installation and CLI entry point |
+| **Report formats** | Markdown, JSON | Save and share analysis output |
 
-## Mathematical concepts used
+The core mathematical algorithms are kept separate from the user interface and SQLite integration so they can be tested independently.
 
-- **Relation schema** `R(A1, ..., An)`: the set of attributes that define a relation.
-- **Functional dependency (FD)** `X -> Y`: a rule stating that an attribute set `X` determines an attribute set `Y`. The mathematical model permits an empty left-hand side.
-- **Attribute closure** `X+`: all attributes logically implied by `X` under a set of FDs. If `X+` contains every attribute of `R`, then `X` is a superkey.
-- **Candidate key**: a minimal superkey; removing any attribute means the remaining set no longer determines all of `R`.
-- **Minimal cover**: an equivalent FD set simplified using standard transformations, such as removing extraneous attributes and redundant dependencies.
-- **1NF**: concerns atomic values. DBSchemaX needs atomicity information when it cannot infer whether an attribute stores an indivisible value or a list/repeating group.
-- **2NF**: rules out partial dependencies of non-prime attributes on a proper subset of a candidate key.
-- **3NF**: uses a formal FD-based condition to avoid certain problematic dependencies on non-superkeys.
-- **BCNF**: requires every determinant in a non-trivial FD to be a superkey.
-- **3NF synthesis**: constructs smaller relation schemas from a minimal cover; the generated decomposition is intended to preserve dependencies and be lossless under the algorithm's conditions.
+---
 
-The tool performs analysis from the schema and functional dependencies supplied to it. It cannot reliably infer every semantic dependency from a small set of sample rows alone.
+## Architecture
 
-## Requirements
+```mermaid
+flowchart TD
+    Input[Schema and Functional Dependencies] --> Validate[Input Parsing and Validation]
+    SQLite[SQLite Schema Inspection] --> Validate
+    Demo[250-record Synthetic Demo] --> Validate
 
-- Python 3.10 or newer
-- Git (optional, for version control)
-- Streamlit for the graphical dashboard
-- pytest for running the test suite
+    Validate --> Closure[Attribute Closure]
+    Closure --> Keys[Candidate-Key Discovery]
+    Validate --> Cover[Minimal Cover]
+    Keys --> NormalForms[Normal-Form Analysis]
+    Cover --> NormalForms
+    Cover --> Synthesis[3NF Synthesis]
 
-The mathematical core and CLI use the Python standard library. Streamlit and pytest are optional dependencies.
+    NormalForms --> Reports[Markdown / JSON Reports]
+    Synthesis --> Output[Decomposed Relation Schemas]
+    Output --> Verify[Projection and Reconstruction Checks]
 
-## Setup on Windows PowerShell
-
-From the project root, create and activate a virtual environment:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+    Validate --> CLI[Command-Line Interface]
+    Closure --> UI[Streamlit Dashboard]
+    Keys --> UI
+    Cover --> UI
+    NormalForms --> UI
+    Synthesis --> UI
+    Verify --> UI
+    Reports --> UI
 ```
 
-Install the project in editable mode with the dashboard and test dependencies:
+### Design principles
 
-```powershell
-python -m pip install -e ".[ui,test]"
+- **Separate concerns:** mathematical algorithms do not depend on Streamlit UI behavior.
+- **Make assumptions visible:** dependency and atomicity information must be supplied or confirmed where it cannot safely be inferred.
+- **Prefer verifiable output:** display results with supporting calculations or checks where implemented.
+- **Preserve source data:** SQLite integration is for inspection; the Normalization Lab operates on its own synthetic demo data.
+
+---
+
+## Analysis Workflow
+
+```mermaid
+flowchart LR
+    A[Define Relation] --> B[Supply Functional Dependencies]
+    B --> C[Compute Closure and Candidate Keys]
+    C --> D[Find Minimal Cover]
+    D --> E[Check Normal Forms]
+    E --> F[Run 3NF Synthesis]
+    F --> G[Inspect and Export Results]
 ```
 
-If PowerShell blocks activation, allow script execution for the current terminal session only, then activate the environment:
+1. Define the relation's attributes and specify the functional dependencies that describe the intended data model.
+2. Use closure and candidate-key analysis to identify which attribute sets determine the complete relation.
+3. Simplify the dependency set with the minimal-cover algorithm.
+4. Review normal-form results and the rules behind any reported violations.
+5. Generate a 3NF decomposition where applicable, then inspect the resulting relation schemas and report output.
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-.\.venv\Scripts\Activate.ps1
-```
+---
 
-## Run the project
-
-### Command-line interface
-
-Show the available commands and options:
-
-```powershell
-python -m dbschemax --help
-```
-
-After the editable installation, the installed entry point is also available:
-
-```powershell
-dbschemax --help
-```
-
-### Streamlit dashboard
-
-From the project root:
-
-```powershell
-python -m streamlit run src/dbschemax/streamlit_app.py
-```
-
-Open the local URL printed by Streamlit in your browser. To demonstrate the dataset transformation, open **Normalization Lab** and load the 250-record demo.
-
-### Tests
-
-Run the full test suite from the project root:
-
-```powershell
-python -m pytest
-```
-
-For more verbose test output:
-
-```powershell
-python -m pytest -v
-```
-
-## Project structure
+## Project Structure
 
 ```text
 DBSchemaX/
@@ -155,35 +268,155 @@ DBSchemaX/
 │       └── streamlit_app.py
 └── tests/
     ├── test_parser.py
+    ├── test_closure.py
+    ├── test_candidate_keys.py
+    ├── test_minimal_cover.py
+    ├── test_normalization.py
+    ├── test_synthesis.py
+    ├── test_sqlite_integration.py
+    ├── test_reporting.py
     ├── test_cli.py
     ├── test_explain.py
     ├── test_inputs.py
+    ├── test_ui_support.py
     ├── test_normalization_lab.py
-    ├── test_normalization_lab_app.py
-    └── ...
+    └── test_normalization_lab_app.py
 ```
 
-The tests directory may contain additional test modules. The core functional-dependency and normalization logic is separated from the CLI and UI code.
+*The tree shows the main modules and representative test files; filenames may evolve as the project changes.*
 
-## Current API example
+---
 
-```python
-from dbschemax import Relation, FunctionalDependency
+## Getting Started
 
-relation = Relation("R", {"A", "B", "C"})
-fd = FunctionalDependency({"A"}, {"B"})
+### Prerequisites
+
+- Python 3.10 or newer
+- PowerShell on Windows, or a terminal on macOS/Linux
+- Git (optional, for cloning the repository)
+
+### 1. Create and activate a virtual environment
+
+**Windows PowerShell**
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-The model types are immutable and hashable, and store their attributes as `frozenset[str]`.
+If PowerShell blocks activation for the current session, use:
 
-## Known limitations and interpretation
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+```
 
-- The analysis depends on the supplied relation schema and functional dependencies being appropriate for the real domain.
-- Normalization rules cannot always be determined from sample values alone; atomicity information may be needed for 1NF.
-- Candidate-key discovery uses subset search, which can become expensive as the number of attributes increases.
-- The Normalization Lab's 250 records are generated demonstration data and should not be presented as a real institutional dataset.
-- Fewer attribute-value cells in the demo are not the same thing as a measured reduction in database file size.
+### 2. Install DBSchemaX with UI and testing dependencies
 
-## Development principle
+From the project root—the directory containing `pyproject.toml`—run:
 
-Keep the core mathematical logic independent of the database and UI layers. The CLI, SQLite integration, reporting, and Streamlit dashboard should reuse the same core analysis rather than implement separate normalization rules.
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -e ".[ui,test]"
+```
+
+This installs the project in editable mode, Streamlit for the dashboard, and pytest for tests.
+
+### 3. Run the tests
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m pytest
+```
+
+### 4. Launch the Streamlit dashboard
+
+```powershell
+python -m streamlit run src/dbschemax/streamlit_app.py
+```
+
+Open the local URL printed in the terminal by Streamlit.
+
+---
+
+## Using DBSchemaX
+
+### Launch the command-line interface
+
+Show available commands and options:
+
+```powershell
+python -m dbschemax --help
+```
+
+If the package's console script is available in the active environment, you can also use:
+
+```powershell
+dbschemax --help
+```
+
+Use the help output to see the supported CLI arguments for your installed version.
+
+### Try the Normalization Lab
+
+1. Launch the Streamlit dashboard.
+2. Open **Normalization Lab**.
+3. Load the **250-record synthetic demo**.
+4. Inspect the original relation, attributes and functional dependencies.
+5. Review the candidate key and normal-form analysis.
+6. Inspect each synthesized relation and its rows.
+7. Review the before/after cell counts and reconstruction check.
+8. Download the resulting tables or reports from the available export controls.
+
+### Bring your own schema
+
+For a custom analysis, provide the relation's attributes and functional dependencies. These dependencies are part of the logical data model: a few sample records cannot establish every dependency that must hold for all valid future records.
+
+For 1NF analysis, atomicity information may also be needed because whether a value is atomic depends on the intended meaning and domain of the attribute.
+
+---
+
+## Testing
+
+DBSchemaX uses `pytest` to test the core algorithms and supporting workflows. The suite covers areas such as parsing, closure, candidate-key discovery, minimal cover, normalization, synthesis, SQLite integration, reports, CLI inputs and dashboard helpers.
+
+Run the complete suite from the project root:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m pytest
+```
+
+For a more verbose test listing:
+
+```powershell
+python -m pytest -v
+```
+
+Always use the results from your current working tree as the authoritative test status; test counts can change as the project evolves.
+
+---
+
+## Important Assumptions and Limitations
+
+- **Functional dependencies are model inputs.** DBSchemaX analyses the rules supplied by the user; it does not prove that they describe every valid real-world record simply by examining a small sample.
+- **Atomicity may require user input.** 1NF depends on the semantic definition of each attribute, so it cannot always be inferred automatically from a column name or a few values.
+- **Candidate-key search can be expensive.** Exhaustive search may scale exponentially as relation attributes increase.
+- **Normalization does not necessarily reduce row count or disk usage.** It separates facts into relations; total rows can increase even while repeated attribute values decrease.
+- **The Lab dataset is synthetic.** It is designed to be reproducible and to satisfy its declared dependencies, not to represent real student records.
+- **3NF synthesis is dependency-driven.** The generated schemas depend on the validity and completeness of the supplied dependency set.
+
+---
+
+## Future Improvements
+
+Potential next steps include a more guided learning path for first-time users, richer dependency visualizations, clearer key/foreign-key relationship diagrams, additional test fixtures, and improved export options. These are ideas for future work, not claims about current functionality.
+
+---
+
+<div align="center">
+
+**DBSchemaX**  
+*Making relational database design more explainable through mathematics.*
+
+</div>
